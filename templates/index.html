@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% block title %}Nexlev – Sales vs Target{% endblock %}
+
+{% block content %}
+
+<!-- ================= TABLE UI FIX ================= -->
+<style>
+/* ---------- GLOBAL TABLE STYLING ---------- */
+.data-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    background: #fff;
+}
+
+.data-table th {
+    position: sticky;
+    top: 0;
+    background: #f3f4f6;
+    color: #111827;
+    font-weight: 600;
+    padding: 8px 10px;
+    border-bottom: 2px solid #d1d5db;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.data-table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #e5e7eb;
+    white-space: nowrap;
+}
+
+.data-table tbody tr:nth-child(even) {
+    background-color: #fafafa;
+}
+
+.data-table tbody tr:hover {
+    background-color: #eef2ff;
+}
+
+/* Right align numeric columns */
+.data-table td:nth-last-child(-n+3),
+.data-table th:nth-last-child(-n+3) {
+    text-align: right;
+}
+
+/* Percentage emphasis */
+.data-table td:last-child {
+    font-weight: 600;
+}
+
+/* Scroll container */
+.table-wrapper {
+    overflow-x: auto;
+}
+</style>
+<!-- ================================================= -->
+
+<h1 class="text-2xl font-semibold mb-2">
+    📊 Nexlev – Sales vs Target Dashboard
+</h1>
+
+<p class="text-sm text-gray-600 mb-6">
+    All values shown are <strong>Net of GST</strong>.
+    Seller Central sales are GST adjusted; Vendor Central sales are already net.
+</p>
+
+<!-- ================================================== -->
+<!-- 🎯 TARGET ANALYSIS (MONTH / DATE RANGE) -->
+<!-- ================================================== -->
+<div class="mb-8 p-4 bg-white border rounded shadow-sm">
+    <h2 class="text-lg font-semibold mb-3">
+        🎯 Target Analysis (ASIN & Category)
+    </h2>
+
+    <p class="text-xs text-gray-500 mb-4">
+        Targets are calculated using the <strong>monthly ASIN Planning file</strong>.
+        You may select either a <strong>month</strong> or a <strong>custom date range</strong>.
+        Date range takes priority if both are selected.
+    </p>
+
+    <form method="post" action="/" class="flex items-end gap-4 flex-wrap">
+
+        <!-- MONTH SELECTOR (UNCHANGED LOGIC) -->
+        <div>
+            <label class="block text-sm font-medium mb-1">Select Month</label>
+            <select name="month"
+                    class="border rounded px-2 py-1 min-w-[160px]">
+                <option value="">-- Select Month --</option>
+                {% for m in months %}
+                    <option value="{{ m }}"
+                        {% if m == selected_month %}selected{% endif %}>
+                        {{ m }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- DATE RANGE (UNCHANGED LOGIC) -->
+        <div>
+            <label class="block text-sm font-medium mb-1">From Date</label>
+            <input type="date"
+                   name="from_date"
+                   value="{{ from_date }}"
+                   class="border rounded px-2 py-1">
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-1">To Date</label>
+            <input type="date"
+                   name="to_date"
+                   value="{{ to_date }}"
+                   class="border rounded px-2 py-1">
+        </div>
+
+        <button type="submit"
+                class="bg-gray-800 text-white px-4 py-2 rounded hover:bg-black">
+            🔍 Apply
+        </button>
+
+        <button
+            type="button"
+            class="bg-white border border-gray-400 text-gray-800 px-4 py-2 rounded hover:bg-gray-100"
+            onclick="
+                const params = new URLSearchParams({
+                    month: document.querySelector('[name=month]')?.value || '',
+                    from_date: document.querySelector('[name=from_date]')?.value || '',
+                    to_date: document.querySelector('[name=to_date]')?.value || ''
+                });
+                window.location.href = '/download-ledger?' + params.toString();
+            "
+        >
+            ⬇ Download Ledger
+        </button>
+
+        {% if selected_month or from_date or to_date %}
+        <a href="/" class="text-sm text-blue-600 underline ml-2">
+            Reset
+        </a>
+        {% endif %}
+    </form>
+</div>
+
+{% if upload_enabled %}
+{% include "partials/upload.html" %}
+{% endif %}
+
+{% include "partials/kpis.html" %}
+
+<!-- ================================================== -->
+<!-- 🛡 DATA INTEGRITY & VALIDATION (READ-ONLY) -->
+<!-- ================================================== -->
+<div class="mt-8 mb-8 p-4 bg-yellow-50 border border-yellow-300 rounded shadow-sm">
+    <h2 class="text-lg font-semibold mb-3">
+        🛡 Data Integrity & Validation
+    </h2>
+
+    {% if validation %}
+    <div class="table-wrapper data-table mb-3">
+        <table>
+            <thead>
+                <tr>
+                    <th>Check</th>
+                    <th>Value</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Ledger ASINs not in Planning</td>
+                    <td>{{ validation.extra_asins }}</td>
+                    <td>{% if validation.extra_asins == 0 %}✅ OK{% else %}❌ ISSUE{% endif %}</td>
+                </tr>
+                <tr>
+                    <td>Nexlev B2B Rows</td>
+                    <td>{{ validation.audio_array_b2b_rows }}</td>
+                    <td>{% if validation.audio_array_b2b_rows == 0 %}✅ OK{% else %}❌ ISSUE{% endif %}</td>
+                </tr>
+                <tr>
+                    <td>KPI Actual</td>
+                    <td>₹ {{ validation.kpi_actual }}</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>Sum of Day-wise Actuals</td>
+                    <td>₹ {{ validation.daywise_sum }}</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>Difference</td>
+                    <td>₹ {{ validation.difference }}</td>
+                    <td>{% if validation.difference == 0 %}✅ MATCH{% else %}⚠️ CHECK{% endif %}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p class="text-sm text-gray-700">
+        <strong>Reason:</strong> {{ validation.reason }}
+    </p>
+    {% else %}
+    <p class="text-sm text-gray-500">No validation data available for the selected range.</p>
+    {% endif %}
+</div>
+
+{% include "partials/daywise.html" %}
+{% include "partials/chart.html" %}
+{% include "partials/ledger.html" %}
+
+<!-- ================================================== -->
+<!-- 📦 ASIN TARGET VS ACTUAL -->
+<!-- ================================================== -->
+<div class="mt-10 bg-white border rounded shadow-sm p-4">
+    <h2 class="text-lg font-semibold mb-3">
+        📦 ASIN Target vs Actual
+    </h2>
+    <div class="table-wrapper data-table">
+        {{ asin_target_table | safe }}
+    </div>
+</div>
+
+<!-- ================================================== -->
+<!-- 🧩 CATEGORY TARGET VS ACTUAL -->
+<!-- ================================================== -->
+<div class="mt-8 bg-white border rounded shadow-sm p-4">
+    <h2 class="text-lg font-semibold mb-3">
+        🧩 Category Target vs Actual
+    </h2>
+    <div class="table-wrapper data-table">
+        {{ category_target_table | safe }}
+    </div>
+</div>
+
+{% endblock %}

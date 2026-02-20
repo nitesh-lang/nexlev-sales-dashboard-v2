@@ -1,0 +1,30 @@
+<canvas id="mtdChart" height="90"></canvas>
+
+<script>
+const ctx = document.getElementById('mtdChart');
+
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: {{ chart.labels | safe }},
+        datasets: [
+            {
+                label: 'Cumulative Actual',
+                data: {{ chart.actual | safe }},
+                borderWidth: 2
+            },
+            {
+                label: 'Cumulative Target',
+                data: {{ chart.target | safe }},
+                borderWidth: 2
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'bottom' }
+        }
+    }
+});
+</script>

@@ -1,0 +1,117 @@
+<form
+    method="post"
+    action="/log-sales"
+    enctype="multipart/form-data"
+    class="bg-white p-4 rounded shadow mb-6"
+>
+    <h2 class="text-lg font-semibold mb-4">
+        Admin Upload – Log Daily Sales
+    </h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium mb-1">
+                Admin Upload Key
+            </label>
+            <input
+                type="password"
+                name="upload_key"
+                required
+                class="w-full border rounded px-3 py-2"
+            />
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-1">
+                Sales Date
+            </label>
+            <input
+                type="date"
+                name="sales_date"
+                required
+                class="w-full border rounded px-3 py-2"
+            />
+        </div>
+    </div>
+
+    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium mb-1">
+                Nexlev – Seller Central
+            </label>
+            <input
+                type="file"
+                name="aa_file"
+                accept=".xlsx,.xls"
+                class="w-full"
+            />
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-1">
+                Cambium Retail – Seller Central
+            </label>
+            <input
+                type="file"
+                name="cr_file"
+                accept=".xlsx,.xls"
+                class="w-full"
+            />
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-1">
+                Viomi by Cambium – Seller Central
+            </label>
+            <input
+                type="file"
+                name="vi_file"
+                accept=".xlsx,.xls"
+                class="w-full"
+            />
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-1">
+                Vendor Central
+            </label>
+            <input
+                type="file"
+                name="vc_file"
+                accept=".xlsx,.xls"
+                class="w-full"
+            />
+        </div>
+    </div>
+
+    <!-- ================================================== -->
+    <!-- 🔁 REPLACE DAY MODE (EXPLICIT & DESTRUCTIVE) -->
+    <!-- ================================================== -->
+    <div class="mt-5 p-3 bg-red-50 border border-red-300 rounded">
+        <label class="inline-flex items-center gap-2">
+            <input
+                type="checkbox"
+                name="replace_day"
+                value="1"
+                class="h-4 w-4 text-red-600 border-gray-300 rounded"
+            />
+            <span class="text-sm font-medium text-red-700">
+                Replace existing data for this date & account
+            </span>
+        </label>
+        <p class="text-xs text-red-600 mt-1">
+            ⚠ This will DELETE all existing sales records for the selected date
+            and uploaded accounts before saving new data.
+            Use only to correct a wrong upload.
+        </p>
+    </div>
+
+    <div class="mt-6">
+        <button
+            type="submit"
+            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+            Log Sales
+        </button>
+    </div>
+</form>

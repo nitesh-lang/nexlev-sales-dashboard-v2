@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Audio Array Dashboard{% endblock %}</title>
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body class="bg-gray-100 text-gray-800">
+
+<div class="flex min-h-screen">
+
+    <!-- SIDEBAR (READ-ONLY, NO FORMS) -->
+    <aside class="w-80 bg-white border-r px-5 py-6 space-y-6">
+
+        <h2 class="text-lg font-semibold">📊 Controls</h2>
+
+        <!-- NET ONLY NOTE -->
+        <div class="text-xs text-gray-600 bg-gray-50 border rounded p-3">
+            <strong>Net of GST:</strong><br>
+            Seller Central sales are GST adjusted.<br>
+            Vendor Central sales are already net.
+        </div>
+
+        <hr>
+
+        <!-- INFO ONLY -->
+        <div class="text-xs text-gray-500 leading-relaxed">
+            This dashboard is <strong>view-only</strong> for most users.<br><br>
+            Sales uploads are restricted to admins and are available
+            inside the main dashboard view.
+        </div>
+
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 p-6">
+        {% block content %}{% endblock %}
+    </main>
+
+</div>
+
+</body>
+</html>

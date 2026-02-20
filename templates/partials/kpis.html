@@ -1,0 +1,30 @@
+<div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+
+    <div class="bg-white rounded shadow p-4">
+        <p class="text-sm text-gray-500">Monthly Target</p>
+        <p class="text-xl font-semibold">{{ (monthly_target or 0) | round(0) }}</p>
+    </div>
+
+    <div class="bg-white rounded shadow p-4">
+        <p class="text-sm text-gray-500">Target Till Date</p>
+        <p class="text-xl font-semibold">{{ (target_till or 0) | round(0) }}</p>
+    </div>
+
+    <div class="bg-white rounded shadow p-4">
+        <p class="text-sm text-gray-500">Actual Sales</p>
+        <p class="text-xl font-semibold">{{ (actual or 0) | round(0) }}</p>
+    </div>
+
+    <div class="bg-white rounded shadow p-4">
+        <p class="text-sm text-gray-500">Achievement %</p>
+        <p class="text-xl font-semibold">
+            {{ ((achievement or 0) * 100) | round(1) }}%
+        </p>
+    </div>
+
+    <div class="bg-white rounded shadow p-4">
+        <p class="text-sm text-gray-500">Pace Index</p>
+        <p class="text-xl font-semibold">{{ (pace or 0) | round(2) }}</p>
+    </div>
+
+</div>

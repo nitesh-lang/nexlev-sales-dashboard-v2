@@ -1,0 +1,22 @@
+<div class="bg-white rounded shadow overflow-x-auto">
+<table class="min-w-full text-sm">
+    <thead class="bg-gray-100">
+        <tr>
+            <th class="px-3 py-2 text-left">Date</th>
+            <th class="px-3 py-2 text-right">Actual</th>
+            <th class="px-3 py-2 text-right">Target</th>
+            <th class="px-3 py-2 text-right">Achieved %</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for r in daywise %}
+        <tr class="border-t">
+            <td class="px-3 py-2">{{ r.date }}</td>
+            <td class="px-3 py-2 text-right">{{ r.actual }}</td>
+            <td class="px-3 py-2 text-right">{{ r.target }}</td>
+            <td class="px-3 py-2 text-right">{{ r.achieved }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
