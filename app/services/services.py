@@ -10,7 +10,7 @@ MONTHLY_TARGET = 17147488
 WORKING_DAYS = 31
 PER_DAY_TARGET = MONTHLY_TARGET / WORKING_DAYS
 
-PLANNING_FOLDER = r"G:\My Drive\FAstAPI\FAstAPI"
+PLANNING_FOLDER = os.path.join("data", "planning")
 
 # =========================
 # COMMON HELPERS
