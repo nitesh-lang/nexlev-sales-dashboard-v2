@@ -326,7 +326,6 @@ def filter_by_date_range(df, f, t):
 def asin_target_vs_actual(ledger, f, t):
     ledger = filter_by_date_range(ledger, f, t)
     ledger = ledger.copy()  # defensive copy to avoid SettingWithCopyWarning
-    ledger = ledger.copy()  # defensive copy to avoid SettingWithCopyWarning
     if ledger.empty:
         return "<p>No data</p>"
 
@@ -339,14 +338,24 @@ def asin_target_vs_actual(ledger, f, t):
 
     actual = ledger.groupby("ASIN", as_index=False)["net_sales"].sum()
 
-    merged = plan.merge(actual, left_on="asin", right_on="ASIN", how="left").fillna(0)
+    merged = plan.merge(
+    actual,
+    left_on="asin",
+    right_on="ASIN",
+    how="left"
+)
+
+    merged["net_sales"] = merged["net_sales"].fillna(0)
+    # Safety in case productname missing
+   
 
     out = pd.DataFrame({
-        "ASIN": merged["asin"],
-        "Category": merged["category"],
-        "Target": merged["period_target"].round(1),
-        "Actual": merged["net_sales"].round(1),
-        "Achievement %": ((merged["net_sales"] / merged["period_target"]) * 100).round(1),
+    "ASIN": merged["asin"],
+    "Category": merged["category"],
+    "Product Name": merged["productname"],   # <-- ADD THIS LINE
+    "Target": merged["period_target"].round(1),
+    "Actual": merged["net_sales"].round(1),
+    "Achievement %": ((merged["net_sales"] / merged["period_target"]) * 100).round(1),
     })
 
     out["Achievement %"] = out["Achievement %"].astype(str) + "%"
