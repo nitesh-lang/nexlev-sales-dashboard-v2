@@ -2,48 +2,243 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>{% block title %}Audio Array Dashboard{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Nexlev Dashboard{% endblock %}</title>
 
-    <!-- Tailwind -->
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --bg: #0c0e14;
+            --surface: #12151e;
+            --surface2: #181c28;
+            --surface3: #1e2333;
+            --border: #252b3b;
+            --accent: #e8b84b;
+            --accent-dim: rgba(232,184,75,0.12);
+            --accent2: #4b8fe8;
+            --accent3: #4be89a;
+            --danger: #e84b4b;
+            --warn: #e8944b;
+            --text: #e2e6f0;
+            --muted: #7a8499;
+            --font-d: 'Syne', sans-serif;
+            --font-b: 'DM Sans', sans-serif;
+        }
+        *, *::before, *::after { box-sizing: border-box; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-b);
+            font-size: 14px;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 70% 45% at 50% -10%, rgba(232,184,75,0.07) 0%, transparent 55%),
+                radial-gradient(ellipse 50% 35% at 95% 85%, rgba(75,143,232,0.05) 0%, transparent 45%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .layout { display: flex; min-height: 100vh; position: relative; z-index: 1; }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 256px; flex-shrink: 0;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 26px 18px;
+            display: flex; flex-direction: column; gap: 20px;
+            position: sticky; top: 0; height: 100vh;
+            overflow-y: auto;
+        }
+        .sb-logo {
+            font-family: var(--font-d); font-size: 18px; font-weight: 800;
+            color: var(--accent); letter-spacing: -0.3px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .sb-logo-icon {
+            width: 34px; height: 34px; background: var(--accent);
+            border-radius: 9px; display: flex; align-items: center;
+            justify-content: center; font-size: 16px; color: #0c0e14;
+        }
+        .sb-badge {
+            background: var(--surface2); border: 1px solid var(--border);
+            border-left: 3px solid var(--accent); border-radius: 8px;
+            padding: 12px 14px; font-size: 12px; color: var(--muted); line-height: 1.8;
+        }
+        .sb-badge strong { color: var(--accent); }
+        .sb-divider { height: 1px; background: var(--border); }
+        .sb-note { font-size: 12px; color: var(--muted); line-height: 1.8; }
+        .sb-note strong { color: var(--text); }
+
+        /* MAIN */
+        main { flex: 1; padding: 30px 34px; overflow-x: hidden; }
+
+        /* PAGE HEADER */
+        .page-title {
+            font-family: var(--font-d); font-size: 26px; font-weight: 800;
+            color: var(--text); letter-spacing: -0.5px; line-height: 1.2;
+        }
+        .page-title .hl { color: var(--accent); }
+        .page-sub { font-size: 12.5px; color: var(--muted); margin-top: 5px; }
+        .page-sub strong { color: var(--text); }
+
+        /* CARD */
+        .card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 14px; padding: 22px 24px;
+            animation: fadeUp 0.4s ease forwards;
+        }
+        .card-hd {
+            font-family: var(--font-d); font-size: 15px; font-weight: 700;
+            color: var(--text); display: flex; align-items: center; gap: 8px;
+            margin-bottom: 4px;
+        }
+        .card-hd .ic {
+            width: 26px; height: 26px; background: var(--surface2);
+            border-radius: 6px; display: flex; align-items: center; justify-content: center;
+            font-size: 13px;
+        }
+        .card-sub { font-size: 12px; color: var(--muted); margin-bottom: 18px; }
+
+        /* FORM ELEMENTS */
+        .field-label {
+            font-size: 11px; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.8px; color: var(--muted); display: block; margin-bottom: 6px;
+        }
+        select, input[type="date"], input[type="password"] {
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 8px; color: var(--text); padding: 9px 12px;
+            font-family: var(--font-b); font-size: 13px; outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s; width: 100%;
+        }
+        select:focus, input[type="date"]:focus, input[type="password"]:focus {
+            border-color: var(--accent); box-shadow: 0 0 0 3px rgba(232,184,75,0.12);
+        }
+        select option { background: var(--surface2); }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.5) sepia(1) hue-rotate(10deg); }
+        input[type="file"] {
+            background: var(--surface2); border: 1px dashed var(--border);
+            border-radius: 8px; color: var(--muted); padding: 8px 12px;
+            font-size: 12px; width: 100%; cursor: pointer; transition: border-color 0.2s;
+        }
+        input[type="file"]:hover { border-color: var(--accent); }
+        input[type="checkbox"] { accent-color: var(--danger); width: 14px; height: 14px; }
+
+        /* BUTTONS */
+        .btn-p {
+            background: var(--accent); color: #0c0e14;
+            border: none; border-radius: 8px; padding: 10px 20px;
+            font-family: var(--font-d); font-size: 13px; font-weight: 700;
+            cursor: pointer; transition: opacity 0.2s, transform 0.15s;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn-p:hover { opacity: 0.88; transform: translateY(-1px); }
+        .btn-s {
+            background: var(--surface2); color: var(--text);
+            border: 1px solid var(--border); border-radius: 8px; padding: 10px 20px;
+            font-family: var(--font-d); font-size: 13px; font-weight: 600;
+            cursor: pointer; transition: border-color 0.2s, background 0.2s;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn-s:hover { border-color: var(--accent); background: var(--accent-dim); }
+        .btn-link { font-size: 12px; color: var(--accent2); text-decoration: none; opacity: 0.8; }
+        .btn-link:hover { opacity: 1; }
+
+        /* TABLES */
+        .tbl-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+        .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .tbl thead th {
+            background: var(--surface2); color: var(--muted);
+            font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.7px;
+            padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; text-align: left;
+        }
+        .tbl tbody td {
+            padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.04);
+            color: var(--text); white-space: nowrap;
+        }
+        .tbl tbody tr:last-child td { border-bottom: none; }
+        .tbl tbody tr:hover td { background: rgba(232,184,75,0.04); }
+        .tbl td.num, .tbl th.num { text-align: right; }
+        .tbl td.bold { font-weight: 600; }
+
+        /* Injected table from backend (asin_target_table / category_target_table) */
+        .data-table table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .data-table th {
+            background: var(--surface2); color: var(--muted);
+            font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.7px;
+            padding: 10px 14px; border-bottom: 1px solid var(--border); text-align: left;
+            white-space: nowrap; position: sticky; top: 0;
+        }
+        .data-table td {
+            padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.04);
+            color: var(--text); white-space: nowrap;
+        }
+        .data-table tbody tr:hover td { background: rgba(232,184,75,0.04); }
+        .data-table td:last-child { font-weight: 600; }
+        .data-table td:nth-last-child(-n+3), .data-table th:nth-last-child(-n+3) { text-align: right; }
+        .table-wrapper { overflow-x: auto; }
+
+        /* STATUS BADGES */
+        .badge-ok { color: var(--accent3); font-weight: 700; font-size: 12px; }
+        .badge-issue { color: var(--danger); font-weight: 700; font-size: 12px; }
+        .badge-warn { color: var(--accent); font-weight: 700; font-size: 12px; }
+
+        /* DETAILS/SUMMARY */
+        details > summary { list-style: none; cursor: pointer; }
+        details > summary::-webkit-details-marker { display: none; }
+
+        /* SECTION GAP */
+        .sec { margin-top: 26px; }
+
+        /* SCROLLBAR */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+        /* ANIMATIONS */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0);    }
+        }
+
+        @media (max-width: 860px) {
+            .sidebar { display: none; }
+            main { padding: 16px; }
+        }
+    </style>
 </head>
 
-<body class="bg-gray-100 text-gray-800">
-
-<div class="flex min-h-screen">
-
-    <!-- SIDEBAR (READ-ONLY, NO FORMS) -->
-    <aside class="w-80 bg-white border-r px-5 py-6 space-y-6">
-
-        <h2 class="text-lg font-semibold">📊 Controls</h2>
-
-        <!-- NET ONLY NOTE -->
-        <div class="text-xs text-gray-600 bg-gray-50 border rounded p-3">
-            <strong>Net of GST:</strong><br>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="sb-logo">
+            <div class="sb-logo-icon">📊</div>
+            Nexlev
+        </div>
+        <div class="sb-badge">
+            <strong>Net of GST</strong><br>
             Seller Central sales are GST adjusted.<br>
             Vendor Central sales are already net.
         </div>
-
-        <hr>
-
-        <!-- INFO ONLY -->
-        <div class="text-xs text-gray-500 leading-relaxed">
+        <div class="sb-divider"></div>
+        <div class="sb-note">
             This dashboard is <strong>view-only</strong> for most users.<br><br>
-            Sales uploads are restricted to admins and are available
-            inside the main dashboard view.
+            Sales uploads are restricted to admins and are available inside the main dashboard view.
         </div>
-
     </aside>
 
-    <!-- MAIN CONTENT -->
-    <main class="flex-1 p-6">
+    <main>
         {% block content %}{% endblock %}
     </main>
-
 </div>
-
 </body>
 </html>
