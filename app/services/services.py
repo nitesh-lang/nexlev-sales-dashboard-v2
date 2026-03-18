@@ -73,12 +73,14 @@ def load_file(source, sheet_name=0, skiprows=0):
                         category=UserWarning,
                         module="openpyxl",
                     )
+                    import io
+                    content = source.file.read()
                     return pd.read_excel(
-                        source.file,
-                        sheet_name=sheet_name,
-                        skiprows=skiprows,
-                        engine="openpyxl",
-                    )
+                    io.BytesIO(content),
+                    sheet_name=sheet_name,
+                    skiprows=skiprows,
+                     engine="openpyxl",
+                     )
 
         if isinstance(source, str) and os.path.exists(source):
             with warnings.catch_warnings():
@@ -324,47 +326,69 @@ def filter_by_date_range(df, f, t):
 # ASIN TARGET VS ACTUAL
 # =========================
 def asin_target_vs_actual(ledger, f, t):
-    ledger = filter_by_date_range(ledger, f, t)
-    ledger = ledger.copy()  # defensive copy to avoid SettingWithCopyWarning
-    ledger = ledger.copy()  # defensive copy to avoid SettingWithCopyWarning
-    if ledger.empty:
-        return "<p>No data</p>"
+    ledger_filtered = filter_by_date_range(ledger, f, t).copy()
+    if ledger_filtered.empty:
+        return []
 
     plan = load_planning_main(f)
     if plan.empty:
-        return "<p>No planning data</p>"
+        return []
 
-    days = ledger["date"].nunique()
+    days = ledger_filtered["date"].nunique()
     plan["period_target"] = plan["perdaygoalprojected"] * days
 
-    actual = ledger.groupby("ASIN", as_index=False)["net_sales"].sum()
+    # Net sales per ASIN
+    actual = ledger_filtered.groupby("ASIN", as_index=False)["net_sales"].sum()
 
-    merged = plan.merge(actual, left_on="asin", right_on="ASIN", how="left").fillna(0)
+    # Units ordered = number of daily rows per ASIN (each row = 1 day upload)
+    units = ledger_filtered.groupby("ASIN", as_index=False)["net_sales"].count()
+    units = units.rename(columns={"net_sales": "units_ordered"})
 
-    out = pd.DataFrame({
-        "ASIN": merged["asin"],
-        "Category": merged["category"],
-        "Target": merged["period_target"].round(1),
-        "Actual": merged["net_sales"].round(1),
-        "Achievement %": ((merged["net_sales"] / merged["period_target"]) * 100).round(1),
-    })
+    merged = plan.merge(actual, left_on="asin", right_on="ASIN", how="left")
+    merged = merged.merge(units, left_on="asin", right_on="ASIN", how="left")
 
-    out["Achievement %"] = out["Achievement %"].astype(str) + "%"
-    return out.to_html(index=False, classes="table table-striped table-bordered table-sm")
+    merged["net_sales"]     = merged["net_sales"].fillna(0)
+    merged["units_ordered"] = merged["units_ordered"].fillna(0).astype(int)
+
+    # norm() strips '#' so 'Model#' becomes 'model' in the DataFrame
+    model_col = next((c for c in ["model#", "model", "modelno", "modelnumber", "sku"] if c in plan.columns), None)
+
+    rows = []
+    for _, r in merged.iterrows():
+        target = round(float(r["period_target"]), 1)
+        actual_val = round(float(r["net_sales"]), 1)
+        ach = round((actual_val / target * 100), 1) if target else 0.0
+        model_no = ""
+        if model_col:
+            raw = r.get(model_col, "")
+            if pd.notna(raw) and str(raw).strip() not in ("", "nan"):
+                model_no = str(raw).strip()
+        rows.append({
+            "asin":          str(r["asin"]),
+            "model_no":      model_no,
+            "category":      str(r.get("category", "")),
+            "product_name":  str(r.get("productname", "")),
+            "target":        target,
+            "actual":        actual_val,
+            "units_ordered": int(r["units_ordered"]),
+            "achievement":   ach,
+        })
+
+    return rows
 
 # =========================
 # CATEGORY TARGET VS ACTUAL
 # =========================
 def category_target_vs_actual(ledger, f, t):
     ledger = filter_by_date_range(ledger, f, t)
-    ledger = ledger.copy()  # defensive copy to avoid SettingWithCopyWarning
+    ledger = ledger.copy()
     if ledger.empty:
-        return "<p>No data</p>"
+        return []
 
     plan_main = load_planning_main(f)
     plan_cat = load_planning_category(f)
     if plan_main.empty or plan_cat.empty:
-        return "<p>No planning data</p>"
+        return []
 
     asin_category = plan_main.set_index("asin")["category"].to_dict()
     ledger["category"] = ledger["ASIN"].map(asin_category)
@@ -376,16 +400,20 @@ def category_target_vs_actual(ledger, f, t):
 
     merged = plan_cat.merge(actual, on="category", how="left").fillna(0)
 
-    out = pd.DataFrame({
-        "Category": merged["category"],
-        "Per Day Target": merged["perdaygoal"].round(1),
-        "Target": merged["period_target"].round(1),
-        "Actual": merged["net_sales"].round(1),
-        "Achievement %": ((merged["net_sales"] / merged["period_target"]) * 100).round(1),
-    })
-
-    out["Achievement %"] = out["Achievement %"].astype(str) + "%"
-    return out.to_html(index=False, classes="table table-striped table-bordered table-sm")
+    rows = []
+    for _, r in merged.iterrows():
+        target = round(float(r["period_target"]), 1)
+        actual_val = round(float(r["net_sales"]), 1)
+        per_day = round(float(r["perdaygoal"]), 1)
+        ach = round((actual_val / target * 100), 1) if target > 0 else 0.0
+        rows.append({
+            "category":   str(r["category"]),
+            "per_day":    per_day,
+            "target":     target,
+            "actual":     actual_val,
+            "achievement": ach,
+        })
+    return rows
 
 # ======================================================
 # 🔧 ONE-TIME HISTORICAL CORRECTION (MANUAL USE ONLY)
@@ -482,3 +510,50 @@ def validation_summary(ledger, f, t):
     except Exception as e:
         print("VALIDATION_ERROR:", e)
         return None
+
+# =========================
+# MONTH-WISE ASIN COMPARISON
+# =========================
+def monthwise_asin_table(ledger):
+    if ledger.empty:
+        return "<p style='padding:32px 20px;color:#94a3b8;font-size:13px;'>No data in ledger yet.</p>"
+
+    df = ledger.copy()
+    df["month"] = df["date"].dt.to_period("M")
+    pivot = (
+        df.groupby(["ASIN", "month"])["net_sales"]
+        .sum()
+        .unstack(fill_value=0)
+    )
+    pivot.columns = [pd.Period(col).strftime("%b %Y") for col in pivot.columns]
+    pivot["Total"] = pivot.sum(axis=1)
+    pivot = pivot.sort_values("Total", ascending=False).reset_index()
+    month_cols = [c for c in pivot.columns if c not in ("ASIN", "Total")]
+    rows_html = ""
+    for _, row in pivot.iterrows():
+        total = row["Total"]
+        cells = ""
+        for m in month_cols:
+            val = row[m]
+            cell_content = "&#8377;{:,.0f}".format(val) if val > 0 else "<span style='color:#d1d5db;'>&#8212;</span>"
+            cells += "<td style='text-align:right;'>" + cell_content + "</td>"
+        rows_html += "<tr><td>" + str(row["ASIN"]) + "</td>" + cells + "<td style='text-align:right;'>&#8377;{:,.0f}</td></tr>".format(total)
+    header_cells = "".join("<th style='text-align:right;'>" + m + "</th>" for m in month_cols)
+    return "<table><thead><tr><th>ASIN</th>" + header_cells + "<th style='text-align:right;'>Total</th></tr></thead><tbody>" + rows_html + "</tbody></table>"
+
+
+def monthwise_asin_chart_data(ledger):
+    empty = {"labels": [], "asins": [], "data": []}
+    if ledger.empty:
+        return empty
+    df = ledger.copy()
+    df["month"] = df["date"].dt.to_period("M")
+    pivot = (
+        df.groupby(["ASIN", "month"])["net_sales"]
+        .sum()
+        .unstack(fill_value=0)
+    )
+    pivot.columns = [pd.Period(c).strftime("%b %Y") for c in pivot.columns]
+    pivot["_total"] = pivot.sum(axis=1)
+    top = pivot.nlargest(8, "_total").drop(columns="_total")
+    return {"labels": list(top.columns), "asins": list(top.index), "data": [top.loc[a].tolist() for a in top.index]}

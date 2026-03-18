@@ -1,30 +1,111 @@
-<div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+<style>
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 14px;
+    margin-bottom: 22px;
+}
+@media (max-width: 1100px) { .kpi-grid { grid-template-columns: repeat(3,1fr); } }
+@media (max-width: 700px)  { .kpi-grid { grid-template-columns: repeat(2,1fr); } }
 
-    <div class="bg-white rounded shadow p-4">
-        <p class="text-sm text-gray-500">Monthly Target</p>
-        <p class="text-xl font-semibold">{{ (monthly_target or 0) | round(0) }}</p>
+.kpi-card {
+    background: var(--card, #13161f);
+    border-radius: 12px;
+    padding: 18px 20px 16px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.18s, box-shadow 0.18s;
+    border: 1px solid rgba(255,255,255,0.04);
+}
+.kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.35);
+}
+.kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 12px 12px 0 0;
+    background: var(--kpi-color, #4be89a);
+}
+.kpi-card::after {
+    content: '';
+    position: absolute;
+    top: -30px; right: -20px;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: var(--kpi-color, #4be89a);
+    opacity: 0.04;
+    pointer-events: none;
+}
+.kpi-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.85px;
+    color: var(--muted);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.kpi-label .kpi-ic { font-size: 13px; opacity: 0.7; }
+.kpi-value {
+    font-family: var(--font-d);
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--text);
+}
+.kpi-sub {
+    font-size: 10.5px;
+    color: var(--muted);
+    margin-top: 6px;
+    opacity: 0.6;
+}
+</style>
+
+<div class="kpi-grid">
+
+    <div class="kpi-card" style="--kpi-color: var(--accent);">
+        <div class="kpi-label"><span class="kpi-ic">🎯</span> Monthly Target</div>
+        <div class="kpi-value" style="color:var(--text);">₹{{ "{:,.0f}".format((monthly_target or 0) | round(0)) }}</div>
+        <div class="kpi-sub">Full month goal</div>
     </div>
 
-    <div class="bg-white rounded shadow p-4">
-        <p class="text-sm text-gray-500">Target Till Date</p>
-        <p class="text-xl font-semibold">{{ (target_till or 0) | round(0) }}</p>
+    <div class="kpi-card" style="--kpi-color: var(--accent2);">
+        <div class="kpi-label"><span class="kpi-ic">📅</span> Target Till Date</div>
+        <div class="kpi-value" style="color:var(--text);">₹{{ "{:,.0f}".format((target_till or 0) | round(0)) }}</div>
+        <div class="kpi-sub">Pro-rated to today</div>
     </div>
 
-    <div class="bg-white rounded shadow p-4">
-        <p class="text-sm text-gray-500">Actual Sales</p>
-        <p class="text-xl font-semibold">{{ (actual or 0) | round(0) }}</p>
+    <div class="kpi-card" style="--kpi-color: var(--accent3);">
+        <div class="kpi-label"><span class="kpi-ic">💰</span> Actual Sales</div>
+        <div class="kpi-value" style="color:var(--accent3);">₹{{ "{:,.0f}".format((actual or 0) | round(0)) }}</div>
+        <div class="kpi-sub">Net of GST</div>
     </div>
 
-    <div class="bg-white rounded shadow p-4">
-        <p class="text-sm text-gray-500">Achievement %</p>
-        <p class="text-xl font-semibold">
-            {{ ((achievement or 0) * 100) | round(1) }}%
-        </p>
+    {% set ach = (achievement or 0) %}
+    {% set ach_color = 'var(--accent3)' if ach >= 1 else ('var(--accent)' if ach >= 0.75 else 'var(--danger)') %}
+    <div class="kpi-card" style="--kpi-color: {{ ach_color }};">
+        <div class="kpi-label"><span class="kpi-ic">📊</span> Achievement %</div>
+        <div class="kpi-value" style="color:{{ ach_color }};">{{ (ach * 100) | round(1) }}%</div>
+        <div class="kpi-sub">{% if ach >= 1 %}On track ✓{% elif ach >= 0.75 %}Approaching target{% else %}Below target{% endif %}</div>
     </div>
 
-    <div class="bg-white rounded shadow p-4">
-        <p class="text-sm text-gray-500">Pace Index</p>
-        <p class="text-xl font-semibold">{{ (pace or 0) | round(2) }}</p>
+    {% set pace_val = (pace or 0) %}
+    {% set pace_color = 'var(--accent3)' if pace_val >= 1 else ('var(--accent)' if pace_val >= 0.8 else 'var(--danger)') %}
+    <div class="kpi-card" style="--kpi-color: {{ pace_color }};">
+        <div class="kpi-label"><span class="kpi-ic">⚡</span> Pace Index</div>
+        <div class="kpi-value" style="color:{{ pace_color }};">{{ pace_val | round(2) }}</div>
+        <div class="kpi-sub">{% if pace_val >= 1 %}Ahead of pace{% elif pace_val >= 0.8 %}Near pace{% else %}Behind pace{% endif %}</div>
+    </div>
+
+    <div class="kpi-card" style="--kpi-color: #7aa0ff;">
+        <div class="kpi-label"><span class="kpi-ic">📦</span> Units Ordered</div>
+        <div class="kpi-value" style="color:#7aa0ff;">{{ "{:,.0f}".format((total_units_ordered or 0)) }}</div>
+        <div class="kpi-sub">Total units MTD</div>
     </div>
 
 </div>

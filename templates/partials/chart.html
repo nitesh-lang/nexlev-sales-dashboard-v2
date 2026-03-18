@@ -1,30 +1,450 @@
-<canvas id="mtdChart" height="90"></canvas>
+<div class="card sec">
+    <div class="card-hd"><span class="ic">📈</span> MTD Cumulative Performance</div>
+    <div class="card-sub">Cumulative Actual vs Target — month to date</div>
+    <div style="position:relative;height:260px;">
+        <canvas id="mtdChart"></canvas>
+    </div>
+</div>
 
 <script>
-const ctx = document.getElementById('mtdChart');
-
-new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: {{ chart.labels | safe }},
-        datasets: [
-            {
-                label: 'Cumulative Actual',
-                data: {{ chart.actual | safe }},
-                borderWidth: 2
+(function() {
+    const ctx = document.getElementById('mtdChart');
+    if (!ctx) return;
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ chart.labels | safe }},
+            datasets: [
+                {
+                    label: 'Cumulative Actual',
+                    data: {{ chart.actual | safe }},
+                    borderColor: '#4be89a',
+                    backgroundColor: 'rgba(75,232,154,0.08)',
+                    borderWidth: 2.5,
+                    fill: true,
+                    tension: 0.35,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#4be89a',
+                    pointBorderColor: '#0c0e14',
+                    pointBorderWidth: 2,
+                },
+                {
+                    label: 'Cumulative Target',
+                    data: {{ chart.target | safe }},
+                    borderColor: '#e8b84b',
+                    backgroundColor: 'rgba(232,184,75,0.06)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.35,
+                    borderDash: [6, 3],
+                    pointRadius: 3,
+                    pointBackgroundColor: '#e8b84b',
+                    pointBorderColor: '#0c0e14',
+                    pointBorderWidth: 2,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: '#8892a4',
+                        font: { family: 'DM Sans', size: 12 },
+                        padding: 20,
+                        usePointStyle: true,
+                        pointStyleWidth: 10
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#181c28',
+                    borderColor: '#252b3b',
+                    borderWidth: 1,
+                    titleColor: '#e2e6f0',
+                    bodyColor: '#8892a4',
+                    padding: 12,
+                    callbacks: {
+                        label: function(c) {
+                            return ' ' + c.dataset.label + ': ₹' + Number(c.raw).toLocaleString('en-IN');
+                        }
+                    }
+                }
             },
-            {
-                label: 'Cumulative Target',
-                data: {{ chart.target | safe }},
-                borderWidth: 2
+            scales: {
+                x: {
+                    grid: { color: 'rgba(255,255,255,0.04)' },
+                    ticks: { color: '#7a8499', font: { family: 'DM Sans', size: 11 } },
+                    border: { color: '#252b3b' }
+                },
+                y: {
+                    grid: { color: 'rgba(255,255,255,0.04)' },
+                    ticks: {
+                        color: '#7a8499',
+                        font: { family: 'DM Sans', size: 11 },
+                        callback: v => '₹' + (v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(0)+'K' : v)
+                    },
+                    border: { color: '#252b3b' }
+                }
             }
-        ]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: { position: 'bottom' }
         }
-    }
-});
+    });
+})();
+</script>
+
+<!-- ─── ASIN Target vs Actual Table ─── -->
+<style>
+.asin-table-wrap {
+    overflow-x: auto;
+    border-radius: 12px;
+    margin-top: 4px;
+}
+#asinTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+}
+#asinTable thead tr {
+    background: #13161f;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+#asinTable thead th {
+    padding: 13px 16px;
+    text-align: left;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #5a6478;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid #1e2333;
+    transition: color 0.18s;
+}
+#asinTable thead th:hover { color: #c5cde0; }
+#asinTable thead th.sort-asc  { color: #4be89a; }
+#asinTable thead th.sort-desc { color: #e8b84b; }
+#asinTable thead th .sort-arrow {
+    display: inline-block;
+    margin-left: 5px;
+    opacity: 0.35;
+    font-size: 10px;
+    transition: opacity 0.15s;
+}
+#asinTable thead th:hover .sort-arrow,
+#asinTable thead th.sort-asc  .sort-arrow,
+#asinTable thead th.sort-desc .sort-arrow { opacity: 1; }
+
+#asinTable tbody tr {
+    border-bottom: 1px solid #181c28;
+    transition: background 0.14s;
+}
+#asinTable tbody tr:hover { background: rgba(255,255,255,0.028); }
+#asinTable tbody td {
+    padding: 11px 16px;
+    color: #c5cde0;
+    white-space: nowrap;
+}
+#asinTable tbody td.asin-code {
+    font-family: 'DM Mono', monospace;
+    font-size: 11.5px;
+    color: #7a8499;
+}
+#asinTable tbody td.model-code {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: #c5cde0;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+#asinTable tbody td.product-name {
+    max-width: 260px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #dde3f0;
+    font-weight: 500;
+}
+#asinTable tbody td.cat-badge span {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 20px;
+    font-size: 10.5px;
+    font-weight: 600;
+    background: rgba(255,255,255,0.06);
+    color: #8892a4;
+}
+#asinTable tbody td.units-val {
+    font-weight: 700;
+    color: #a8b4cc;
+    text-align: right;
+}
+#asinTable tbody td.num-val { text-align: right; color: #8892a4; }
+#asinTable tbody td.actual-val { text-align: right; color: #4be89a; font-weight: 600; }
+
+.ach-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px 3px 7px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    min-width: 68px;
+    justify-content: center;
+}
+.ach-pill.high { background: rgba(75,232,154,0.12);  color: #4be89a; }
+.ach-pill.med  { background: rgba(232,184,75,0.12);   color: #e8b84b; }
+.ach-pill.low  { background: rgba(255,80,80,0.12);    color: #ff6b6b; }
+.ach-pill.mid2 { background: rgba(120,160,255,0.12);  color: #7aa0ff; }
+
+.units-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(122,160,255,0.1);
+    color: #7aa0ff;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+/* ── Controls bar — all on ONE row ── */
+.table-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+
+/* shared input/select base */
+.tc-input, .tc-select {
+    background: #13161f;
+    border: 1px solid #1e2333;
+    border-radius: 8px;
+    color: #8892a4;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12.5px;
+    height: 36px;
+    outline: none;
+    transition: border-color 0.2s, color 0.2s;
+}
+.tc-input:focus, .tc-select:focus {
+    border-color: rgba(232,184,75,0.4);
+    color: #c5cde0;
+}
+
+/* Search box */
+.tbl-search {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 12px;
+    flex: 1;
+    min-width: 160px;
+    max-width: 260px;
+}
+.tbl-search input {
+    background: none;
+    border: none;
+    outline: none;
+    color: #c5cde0;
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    width: 100%;
+    height: 100%;
+}
+.tbl-search input::placeholder { color: #3a4258; }
+.tbl-search-ic { color: #3a4258; font-size: 13px; flex-shrink: 0; }
+
+/* Category + ASIN selects */
+.tc-select {
+    padding: 0 30px 0 11px;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235a6478' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-color: #13161f;
+    cursor: pointer;
+    min-width: 145px;
+}
+#asinFilter { font-family: 'DM Mono', monospace; font-size: 11.5px; min-width: 180px; max-width: 210px; }
+
+/* Clear button */
+.tbl-clear-btn {
+    background: none;
+    border: 1px solid #1e2333;
+    border-radius: 7px;
+    color: #5a6478;
+    font-size: 11.5px;
+    font-family: 'DM Sans', sans-serif;
+    padding: 0 12px;
+    height: 36px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.tbl-clear-btn:hover { border-color: #e8b84b; color: #e8b84b; }
+
+.tbl-info { font-size: 12px; color: #3a4258; margin-left: auto; white-space: nowrap; }
+</style>
+
+<div class="card sec" style="margin-top:18px;">
+    <div class="card-hd"><span class="ic">🎯</span> ASIN Target vs Actual</div>
+    <div class="card-sub">Per-ASIN breakdown — target, actual revenue &amp; units ordered</div>
+
+    <!-- ALL controls on one line -->
+    <div class="table-controls">
+
+        <!-- Search -->
+        <div class="tbl-search tc-input">
+            <span class="tbl-search-ic">🔍</span>
+            <input type="text" id="asinSearch" placeholder="Search ASIN, model or product…" oninput="applyFilters()">
+        </div>
+
+        <!-- Category dropdown -->
+        <select class="tc-select" id="catFilter" onchange="applyFilters()">
+            <option value="">All Categories</option>
+            {% set cats = asin_rows | map(attribute='category') | unique | sort %}
+            {% for cat in cats %}
+            <option value="{{ cat }}">{{ cat }}</option>
+            {% endfor %}
+        </select>
+
+        <!-- ASIN dropdown -->
+        <select class="tc-select" id="asinFilter" onchange="applyFilters()">
+            <option value="">All ASINs</option>
+            {% for row in asin_rows | sort(attribute='asin') %}
+            <option value="{{ row.asin }}">{{ row.asin }}{% if row.model_no %} · {{ row.model_no }}{% endif %}</option>
+            {% endfor %}
+        </select>
+
+        <!-- Clear -->
+        <button class="tbl-clear-btn" onclick="clearFilters()">✕ Clear</button>
+
+        <div class="tbl-info" id="asinRowCount"></div>
+    </div>
+
+    <div class="asin-table-wrap">
+        <table id="asinTable">
+            <thead>
+                <tr>
+                    <th onclick="sortAsinTable(0)" data-col="0">ASIN <span class="sort-arrow">↕</span></th>
+                    <th onclick="sortAsinTable(1)" data-col="1">Model No. <span class="sort-arrow">↕</span></th>
+                    <th onclick="sortAsinTable(2)" data-col="2">Category <span class="sort-arrow">↕</span></th>
+                    <th onclick="sortAsinTable(3)" data-col="3">Product Name <span class="sort-arrow">↕</span></th>
+                    <th onclick="sortAsinTable(4)" data-col="4" style="text-align:right;">Target ₹ <span class="sort-arrow">↕</span></th>
+                    <th onclick="sortAsinTable(5)" data-col="5" style="text-align:right;">Actual ₹ <span class="sort-arrow">↕</span></th>
+                    <th onclick="sortAsinTable(6)" data-col="6" style="text-align:right;">Units <span class="sort-arrow">↕</span></th>
+                    <th onclick="sortAsinTable(7)" data-col="7" style="text-align:right;">Achievement % <span class="sort-arrow">↕</span></th>
+                </tr>
+            </thead>
+            <tbody id="asinTbody">
+                {% for row in asin_rows %}
+                {% set ach = row.achievement %}
+                <tr data-asin="{{ row.asin }}" data-cat="{{ row.category }}">
+                    <td class="asin-code">{{ row.asin }}</td>
+                    <td class="model-code">{{ row.model_no or '—' }}</td>
+                    <td class="cat-badge"><span>{{ row.category }}</span></td>
+                    <td class="product-name" title="{{ row.product_name }}">{{ row.product_name }}</td>
+                    <td class="num-val" data-val="{{ row.target }}">{{ "{:,.0f}".format(row.target) }}</td>
+                    <td class="actual-val" data-val="{{ row.actual }}">{{ "{:,.1f}".format(row.actual) }}</td>
+                    <td class="units-val" data-val="{{ row.units_ordered or 0 }}">
+                        <span class="units-badge">📦 {{ row.units_ordered or 0 }}</span>
+                    </td>
+                    <td style="text-align:right;" data-val="{{ ach }}">
+                        <span class="ach-pill {% if ach >= 100 %}high{% elif ach >= 70 %}mid2{% elif ach >= 40 %}med{% else %}low{% endif %}">
+                            {% if ach >= 100 %}✓{% elif ach >= 70 %}▲{% elif ach >= 40 %}~{% else %}▼{% endif %}
+                            {{ "{:.1f}".format(ach) }}%
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// ── Sort ──────────────────────────────────────────────────
+let _sortCol = -1, _sortDir = 1;
+
+function sortAsinTable(col) {
+    const tbody = document.getElementById('asinTbody');
+    const ths   = document.querySelectorAll('#asinTable thead th');
+    const rows  = Array.from(tbody.querySelectorAll('tr'));
+
+    if (_sortCol === col) { _sortDir *= -1; }
+    else { _sortCol = col; _sortDir = 1; }
+
+    ths.forEach((th, i) => {
+        th.classList.remove('sort-asc','sort-desc');
+        th.querySelector('.sort-arrow').textContent = '↕';
+        if (i === col) {
+            th.classList.add(_sortDir === 1 ? 'sort-asc' : 'sort-desc');
+            th.querySelector('.sort-arrow').textContent = _sortDir === 1 ? '↑' : '↓';
+        }
+    });
+
+    rows.sort((a, b) => {
+        const aCell = a.querySelectorAll('td')[col];
+        const bCell = b.querySelectorAll('td')[col];
+        if ([4,5,6,7].includes(col)) {
+            const aVal = parseFloat(aCell.dataset.val ?? aCell.textContent.replace(/[₹,% ]/g,'')) || 0;
+            const bVal = parseFloat(bCell.dataset.val ?? bCell.textContent.replace(/[₹,% ]/g,'')) || 0;
+            return (aVal - bVal) * _sortDir;
+        }
+        return aCell.textContent.trim().localeCompare(bCell.textContent.trim()) * _sortDir;
+    });
+
+    rows.forEach(r => tbody.appendChild(r));
+    updateRowCount();
+}
+
+// ── Filters ───────────────────────────────────────────────
+function applyFilters() {
+    const q       = (document.getElementById('asinSearch').value || '').toLowerCase();
+    const catVal  = (document.getElementById('catFilter').value  || '').toLowerCase();
+    const asinVal = (document.getElementById('asinFilter').value || '').toUpperCase();
+
+    const rows = document.querySelectorAll('#asinTbody tr');
+    let visible = 0;
+
+    rows.forEach(row => {
+        const matchQ    = !q       || row.textContent.toLowerCase().includes(q);
+        const matchCat  = !catVal  || (row.dataset.cat  || '').toLowerCase() === catVal;
+        const matchAsin = !asinVal || (row.dataset.asin || '').toUpperCase() === asinVal;
+        const show = matchQ && matchCat && matchAsin;
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+
+    updateRowCount(visible);
+}
+
+function clearFilters() {
+    document.getElementById('asinSearch').value = '';
+    document.getElementById('catFilter').value  = '';
+    document.getElementById('asinFilter').value = '';
+    applyFilters();
+}
+
+function updateRowCount(visible) {
+    const total = document.querySelectorAll('#asinTbody tr').length;
+    const shown = visible !== undefined ? visible : total;
+    const el = document.getElementById('asinRowCount');
+    if (el) el.textContent = shown === total ? `${total} ASINs` : `${shown} of ${total} ASINs`;
+}
+
+document.addEventListener('DOMContentLoaded', function() { updateRowCount(); });
 </script>

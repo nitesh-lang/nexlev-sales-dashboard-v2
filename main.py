@@ -23,6 +23,7 @@ from app.services.services import (
     asin_target_vs_actual,
     category_target_vs_actual,
     validation_summary,
+    monthwise_asin_chart_data,
 )
 
 # ==================================================
@@ -166,11 +167,12 @@ def render_dashboard(
             "actual_sales": 0,
             "achievement_pct": 0,
             "pace_index": 0,
+            "total_units_ordered": 0,
             "daywise": [],
             "chart": {"labels": [], "actual": [], "target": []},
             "weekwise": "<p>No data</p>",
-            "asin_target_table": "<p>No data</p>",
-            "category_target_table": "<p>No data</p>",
+            "asin_rows": [],
+            "cat_rows": [],
         })
         return templates.TemplateResponse("index.html", context)
 
@@ -203,11 +205,16 @@ def render_dashboard(
         if f.month != t.month or f.year != t.year:
             tf = ref_date.replace(day=1)
             tt = ref_date
-        context["asin_target_table"] = asin_target_vs_actual(ledger, tf, tt)
-        context["category_target_table"] = category_target_vs_actual(ledger, tf, tt)
+        asin_rows = asin_target_vs_actual(ledger, tf, tt)
+        context["asin_rows"] = asin_rows
+        context["total_units_ordered"] = sum(r["units_ordered"] for r in asin_rows)
+        context["cat_rows"] = category_target_vs_actual(ledger, tf, tt)
+        context["monthwise_chart"] = monthwise_asin_chart_data(ledger)
     else:
-        context["asin_target_table"] = "<p>Select date range or month</p>"
-        context["category_target_table"] = "<p>Select date range or month</p>"
+        context["asin_rows"] = []
+        context["total_units_ordered"] = 0
+        context["cat_rows"] = []
+        context["monthwise_chart"] = monthwise_asin_chart_data(ledger)
 
     # ---------------- KPI SAFETY DEFAULTS (UI ONLY) ----------------
     context.setdefault("monthly_target", 0)
