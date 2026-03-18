@@ -1,22 +1,33 @@
-<div class="bg-white rounded shadow overflow-x-auto">
-<table class="min-w-full text-sm">
-    <thead class="bg-gray-100">
-        <tr>
-            <th class="px-3 py-2 text-left">Date</th>
-            <th class="px-3 py-2 text-right">Actual</th>
-            <th class="px-3 py-2 text-right">Target</th>
-            <th class="px-3 py-2 text-right">Achieved %</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for r in daywise %}
-        <tr class="border-t">
-            <td class="px-3 py-2">{{ r.date }}</td>
-            <td class="px-3 py-2 text-right">{{ r.actual }}</td>
-            <td class="px-3 py-2 text-right">{{ r.target }}</td>
-            <td class="px-3 py-2 text-right">{{ r.achieved }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="card sec">
+    <div class="card-hd"><span class="ic">📅</span> Day-wise Performance</div>
+    <div class="tbl-wrap" style="margin-top:14px;">
+        <table class="tbl">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th class="num">Actual (₹)</th>
+                    <th class="num">Target (₹)</th>
+                    <th class="num">Achieved %</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in daywise %}
+                <tr>
+                    <td>{{ r.date }}</td>
+                    <td class="num" style="color:var(--accent3);font-weight:600;">₹{{ "{:,.1f}".format(r.actual) }}</td>
+                    <td class="num" style="color:var(--muted);">₹{{ "{:,.1f}".format(r.target) }}</td>
+                    <td class="num">
+                        {% set ach = r.achieved %}
+                        <span style="font-weight:700;color:{% if ach >= 1 %}var(--accent3){% elif ach >= 0.75 %}var(--accent){% else %}var(--danger){% endif %};">
+                            {{ (ach * 100) | round(1) }}%
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not daywise %}
+                <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px;">No data for selected range.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
 </div>
