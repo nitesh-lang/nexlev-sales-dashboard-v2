@@ -173,6 +173,8 @@ def render_dashboard(
             "weekwise": "<p>No data</p>",
             "asin_rows": [],
             "cat_rows": [],
+            "monthwise_chart": {"labels": [], "asins": [], "data": []},
+            "validation": validation_summary(ledger, f, t),
         })
         return templates.TemplateResponse("index.html", context)
 
