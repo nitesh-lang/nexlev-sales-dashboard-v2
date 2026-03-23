@@ -556,4 +556,6 @@ def monthwise_asin_chart_data(ledger):
     pivot.columns = [pd.Period(c).strftime("%b %Y") for c in pivot.columns]
     pivot["_total"] = pivot.sum(axis=1)
     top = pivot.nlargest(8, "_total").drop(columns="_total")
-    return {"labels": list(top.columns), "asins": list(top.index), "data": [top.loc[a].tolist() for a in top.index]}
+    asins = [str(a) for a in top.index]
+    data  = [top.iloc[i].tolist() for i in range(len(top))]
+    return {"labels": list(top.columns), "asins": asins, "data": data}
