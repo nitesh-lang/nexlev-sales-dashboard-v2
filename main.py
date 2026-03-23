@@ -150,14 +150,13 @@ def render_dashboard(
         ledger_filtered = filter_by_date_range(ledger, f, t)
 
     context = {
-        "request": request,
-        "upload_enabled": bool(ADMIN_UPLOAD_KEY),
-        "error": error,
-        "months": months,
-        "selected_month": selected_month or "",
-        "from_date": from_date or "",
-        "to_date": to_date or "",
-    }
+    "upload_enabled": bool(ADMIN_UPLOAD_KEY),
+    "error": error,
+    "months": months,
+    "selected_month": selected_month or "",
+    "from_date": from_date or "",
+    "to_date": to_date or "",
+}
 
     # ---------------- EMPTY LEDGER SAFETY ----------------
     if ledger_filtered.empty:
@@ -176,7 +175,7 @@ def render_dashboard(
             "monthwise_chart": {"labels": [], "asins": [], "data": []},
             "validation": validation_summary(ledger, f, t),
         })
-        return templates.TemplateResponse("index.html", context)
+        return templates.TemplateResponse(request=request, name="index.html", context=context)
 
     # ---------------- REF DATE ----------------
     if t is not None:
@@ -225,7 +224,7 @@ def render_dashboard(
     context.setdefault("achievement_pct", 0)
     context.setdefault("pace_index", 0)
 
-    return templates.TemplateResponse("index.html", context)
+    return templates.TemplateResponse(request=request, name="index.html", context=context)
 # ==================================================
 # ROUTES
 # ==================================================
