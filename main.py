@@ -344,7 +344,7 @@ def download_ledger(
         f = pd.to_datetime(from_date, format="%Y-%m-%d", errors="coerce")
         t = pd.to_datetime(to_date, format="%Y-%m-%d", errors="coerce")
 
-        if (pd.notna(f) and pd.notna(t)) or selected_month:
+        if (pd.notna(f) and pd.notna(t)) or month:
             ledger = filter_by_date_range(ledger, f, t)
 
     elif month:
